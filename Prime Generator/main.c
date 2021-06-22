@@ -46,7 +46,9 @@ int passes_miller_rabin_test( mpz_t *candidate ) {
 
     bool is_probably_prime = true;
 
+    mpz_t one;
     mpz_t candidate_number;
+    
     mpz_t candidate_minus_one;
     mpz_t even_component;
     mpz_t test_number;
@@ -59,6 +61,7 @@ int passes_miller_rabin_test( mpz_t *candidate ) {
 
     mpz_init_set( candidate_number, *candidate ); // Only way for candidate to not become zero
 
+    mpz_init_set_ui(one, 1);
     mpz_init(candidate_minus_one);
     mpz_init(test_number);
     mpz_init(test_number_limit);
@@ -68,7 +71,7 @@ int passes_miller_rabin_test( mpz_t *candidate ) {
 
     mpz_sub_ui( candidate_minus_one, candidate_number, 1 );
     mpz_sub_ui( test_number_limit, candidate_number, 4 );
-    
+
     mpz_init_set( even_component, candidate_minus_one );
     
     gmp_randinit_mt(state);
@@ -130,16 +133,13 @@ int passes_miller_rabin_test( mpz_t *candidate ) {
 }
 
 
-void get_prime_candidate(unsigned int number_of_bits, mpz_t prime_candidate_pointer) {
+void get_prime_candidate(unsigned int number_of_bits, mpz_t *prime_candidate_pointer) {
     char *prime_candidate_bits;
     unsigned long int divisor;
 
     mpz_t prime_candidate;
     mpz_t mod_result;
     mpz_t divisor_squared;
-
-
-
 
     mpz_init(prime_candidate);
     mpz_init(mod_result);
@@ -169,38 +169,24 @@ void get_prime_candidate(unsigned int number_of_bits, mpz_t prime_candidate_poin
     mpz_clear(mod_result);
     mpz_clear(divisor_squared);
 
-    gmp_printf("CPRMIMEIME  BEFFFF %Zi\n", prime_candidate);
-
-    prime_candidate_pointer = prime_candidate;
+    mpz_set(*prime_candidate_pointer, prime_candidate);
 }
 
-mpz_t * get_prime(unsigned int number_of_bits) {
+void get_prime(unsigned int number_of_bits, mpz_t *prime_pointer) {
     mpz_t prime_candidate;
-    mpz_t *prime_candidate_pointer;
-    
-    prime_candidate_pointer = &prime_candidate;
+
     mpz_init(prime_candidate);
 
     printf("Generating a %u bit prime number\n\n", number_of_bits);
     printf("Checking primality with Miller-Rabin test\n");
 
-
     while (true) {
-        get_prime_candidate(number_of_bits, prime_candidate);
+        get_prime_candidate(number_of_bits, &prime_candidate);
 
-        gmp_printf("CPRMIMEIME %Zi\n", prime_candidate);
-
-        mpz_set(prime_candidate, *prime_candidate_pointer); // Backup value of prime candidate
-
-
-
-        if ( passes_miller_rabin_test(prime_candidate_pointer) ) {
-            prime_candidate_pointer = &prime_candidate;
-            
-            return prime_candidate_pointer;
+        if ( passes_miller_rabin_test(&prime_candidate) ) {
+            mpz_set(*prime_pointer, prime_candidate);
+            return;
         }
-
-        
     }
 }
 
@@ -233,7 +219,9 @@ int main( int argc, char *argv[] ) {
 
     srand(seed);
 
-    mpz_t *prime_pointer;
+    mpz_t prime;
+
+    mpz_init(prime);
 
     clock_t begin, end;
 
@@ -247,8 +235,8 @@ int main( int argc, char *argv[] ) {
     begin = clock();
 
     /* here, do your time-consuming job */
-    prime_pointer = get_prime(number_of_bits);
-    gmp_printf( "\nGenerated the prime number \x1b[1;97m%Zi\x1b[0m", *prime_pointer );
+    get_prime(number_of_bits, &prime);
+    gmp_printf( "\nGenerated the prime number \x1b[1;97m%Zi\x1b[0m", prime );
 
     end = clock();
 
